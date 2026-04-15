@@ -397,6 +397,7 @@
     padding: 5px;
     margin-bottom: 1.5rem;
     width: fit-content;
+    align-items: center;
   }
   .tab-btn {
     font-family: 'DM Sans', sans-serif;
@@ -412,6 +413,33 @@
   }
   .tab-btn:hover { background: var(--bg); color: var(--text); }
   .tab-btn.active { background: var(--text); color: white; }
+
+  /* ── CART BUTTON ── */
+  .cart-btn {
+    margin-left: auto;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: white;
+    background: linear-gradient(135deg, #2c5f8a 0%, #1a4d6d 100%);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(44, 95, 138, 0.2);
+  }
+  .cart-btn:hover {
+    background: linear-gradient(135deg, #1a4d6d 0%, #0d3a54 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 95, 138, 0.3);
+  }
+  .cart-btn:active {
+    transform: translateY(0);
+  }
 
   /* ── STATS TABLE ── */
   .stats-grid {
@@ -640,6 +668,7 @@
     <button class="tab-btn active" onclick="switchTab('entradas')">📋 Entradas</button>
     <button class="tab-btn" onclick="switchTab('stats')">📊 Times & Ligas</button>
     <button class="tab-btn" onclick="switchTab('periodo')">📈 Relatório por Período</button>
+    <a href="https://lastlink.com/p/CDF09E55C/checkout-payment/" target="_blank" class="cart-btn">🛒 Compra bot</a>
   </div>
 
   <!-- FILTROS -->
