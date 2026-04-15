@@ -618,6 +618,7 @@ async def main():
     async with TelegramClient(StringSession(SESSION_STR), API_ID, API_HASH) as tg:
         log.info("Conectado ao Telegram.")
         ultimo_placar = datetime.now() - timedelta(seconds=INTERVALO_PLAC)
+        ultimo_gols = datetime.now()  # Para atualizar gols a cada ciclo
 
         # Atualiza gols retroativos uma vez ao iniciar
         planilha_init = conectar_planilha()
@@ -629,6 +630,12 @@ async def main():
                 df = await coletar_dados(tg)
                 if df is not None and not df.empty:
                     atualizar_sheets(df)
+
+                # Atualizar gols a cada ciclo (detecta ⚽ ✖️ e atualiza placares finalizados)
+                if (datetime.now() - ultimo_gols).total_seconds() >= INTERVALO_SEG:
+                    planilha = conectar_planilha()
+                    await atualizar_gols_telegram(tg, planilha)
+                    ultimo_gols = datetime.now()
 
                 if (datetime.now() - ultimo_placar).total_seconds() >= INTERVALO_PLAC:
                     atualizar_placares()
