@@ -27,12 +27,35 @@ SESSION_STR     = os.getenv("TELEGRAM_SESSION")
 GOOGLE_CREDS    = os.getenv("GOOGLE_CREDS")
 
 # Validate that required credentials are set
+log.info("🔍 Validando credenciais...")
+
 if not API_HASH:
-    raise ValueError("TELEGRAM_API_HASH not set. Please set environment variables from .env file.")
+    log.error("❌ TELEGRAM_API_HASH não foi carregado do .env")
+    raise ValueError("TELEGRAM_API_HASH not set. Verifique o arquivo .env")
+else:
+    log.info(f"✓ TELEGRAM_API_HASH carregado ({len(API_HASH)} chars)")
+
 if not SESSION_STR:
-    raise ValueError("TELEGRAM_SESSION not set. Please set environment variables from .env file.")
+    log.error("❌ TELEGRAM_SESSION não foi carregado do .env")
+    raise ValueError("TELEGRAM_SESSION not set. Verifique o arquivo .env")
+else:
+    log.info(f"✓ TELEGRAM_SESSION carregado ({len(SESSION_STR)} chars)")
+
 if not GOOGLE_CREDS:
-    raise ValueError("GOOGLE_CREDS not set. Please set environment variables from .env file.")
+    log.error("❌ GOOGLE_CREDS não foi carregado do .env")
+    raise ValueError("GOOGLE_CREDS not set. Verifique o arquivo .env")
+else:
+    log.info(f"✓ GOOGLE_CREDS carregado ({len(GOOGLE_CREDS)} chars)")
+    # Try to validate JSON early
+    try:
+        test_json = json.loads(GOOGLE_CREDS)
+        if "private_key" in test_json:
+            log.info(f"✓ GOOGLE_CREDS é um JSON válido com private_key")
+        else:
+            log.warning("⚠️ GOOGLE_CREDS JSON não contém 'private_key'")
+    except json.JSONDecodeError as e:
+        log.error(f"❌ GOOGLE_CREDS não é um JSON válido: {str(e)[:100]}")
+        raise ValueError(f"GOOGLE_CREDS JSON inválido: {str(e)}")
 
 SPREADSHEET     = "LAY_SCORE_ALERTAS"
 CANAL_NOME      = "BOT de Lay CS - Baumann"
@@ -201,8 +224,36 @@ async def coletar_dados(telegram_client):
 # ── Conecta ao Google Sheets ───────────────────────────────────────────────────
 def conectar_planilha():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(GOOGLE_CREDS), scope)
-    return gspread.authorize(creds).open(SPREADSHEET)
+
+    # Validate GOOGLE_CREDS is loaded
+    if not GOOGLE_CREDS:
+        raise ValueError("❌ GOOGLE_CREDS não foi carregado. Verifique o arquivo .env")
+
+    try:
+        # Parse JSON credentials
+        creds_dict = json.loads(GOOGLE_CREDS)
+        log.debug(f"✓ GOOGLE_CREDS JSON carregado com sucesso")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"❌ GOOGLE_CREDS é um JSON inválido: {str(e)}")
+
+    # Validate required fields
+    required_fields = ["type", "project_id", "private_key", "client_email", "client_id"]
+    missing = [f for f in required_fields if f not in creds_dict]
+    if missing:
+        raise ValueError(f"❌ GOOGLE_CREDS faltam campos: {missing}")
+
+    try:
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        log.debug(f"✓ Credenciais do Google validadas")
+    except Exception as e:
+        raise ValueError(f"❌ Erro ao autenticar com Google: {str(e)}")
+
+    try:
+        planilha = gspread.authorize(creds).open(SPREADSHEET)
+        log.debug(f"✓ Conectado à planilha '{SPREADSHEET}'")
+        return planilha
+    except Exception as e:
+        raise ValueError(f"❌ Erro ao abrir planilha '{SPREADSHEET}': {str(e)}")
 
 def obter_ou_criar_aba(planilha, nome):
     try:
