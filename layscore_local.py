@@ -242,15 +242,22 @@ def conectar_planilha():
     if missing:
         raise ValueError(f"❌ GOOGLE_CREDS faltam campos: {missing}")
 
+    # FIX: Decode escape sequences in private_key (\\n -> actual newline)
+    # This is needed when GOOGLE_CREDS is loaded from .env with escaped newlines
+    if "private_key" in creds_dict:
+        # Replace literal \\n with actual newlines
+        creds_dict["private_key"] = creds_dict["private_key"].encode('utf-8').decode('unicode_escape')
+        log.debug(f"✓ Private key escape sequences decodificadas")
+
     try:
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        log.debug(f"✓ Credenciais do Google validadas")
+        log.info(f"✓ Credenciais do Google validadas com sucesso")
     except Exception as e:
         raise ValueError(f"❌ Erro ao autenticar com Google: {str(e)}")
 
     try:
         planilha = gspread.authorize(creds).open(SPREADSHEET)
-        log.debug(f"✓ Conectado à planilha '{SPREADSHEET}'")
+        log.info(f"✓ Conectado à planilha '{SPREADSHEET}'")
         return planilha
     except Exception as e:
         raise ValueError(f"❌ Erro ao abrir planilha '{SPREADSHEET}': {str(e)}")

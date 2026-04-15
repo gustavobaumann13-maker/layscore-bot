@@ -40,7 +40,13 @@ def limpar_time(n):
 
 def conectar_planilha():
     scope = ["https://spreadsheets.google.com/feeds","https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(GOOGLE_CREDS), scope)
+    creds_dict = json.loads(GOOGLE_CREDS)
+
+    # FIX: Decode escape sequences in private_key (\\n -> actual newline)
+    if "private_key" in creds_dict:
+        creds_dict["private_key"] = creds_dict["private_key"].encode('utf-8').decode('unicode_escape')
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds).open(SPREADSHEET)
 
 def extrair_gols(texto, casa, visitante):
