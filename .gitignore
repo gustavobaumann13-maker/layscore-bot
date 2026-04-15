@@ -1,0 +1,32 @@
+# Credenciais e Senhas
+credenciais_google.json
+.env
+.env.local
+.env.*.local
+credentials.json
+*_session.json
+
+# Contexto privado
+CONTEXTO_NOVO_CHAT.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+
+# Exclude only sensitive bat files (none currently)
+# Safe bat files (INICIAR_BOT.bat, SUBIR_GITHUB.bat) are committed
+
+# Logs
+*.log

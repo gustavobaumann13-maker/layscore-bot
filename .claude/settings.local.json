@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:bolsadeaposta.bet.br)",
+      "Bash(python -c \"import shutil; shutil.rmtree\\('.git', ignore_errors=True\\)\")"
+    ]
+  }
+}
