@@ -49,6 +49,24 @@ def conectar_planilha():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     return gspread.authorize(creds).open(SPREADSHEET)
 
+def detectar_jogo_finalizado(texto):
+    """Detecta se há ⚽ ✖️ ou equivalente no texto (jogo finalizou sem mais gols)"""
+    if re.search(r'⚽\s*[❌✖️×x]', texto):
+        return True
+    return False
+
+def extrair_placar_do_alerta(texto):
+    """Extrai o placar que estava no alerta (para jogos finalizados com ⚽ ✖️)"""
+    m = re.search(r'Placar[:\s]+(\d+)[xX](\d+)', texto)
+    if m:
+        return f"{m.group(1)}x{m.group(2)}"
+    for linha in texto.split('\n'):
+        if 'Resultado:' in linha:
+            m = re.search(r'(\d+)[xX](\d+)', linha)
+            if m:
+                return f"{m.group(1)}x{m.group(2)}"
+    return None
+
 def extrair_gols(texto, casa, visitante):
     """Extrai gols da mensagem Telegram. Retorna string '45\'C,58\'V' ou ''."""
     casa_l  = limpar_time(casa).lower()

@@ -117,6 +117,29 @@ def calcular_placar_dos_gols(gols_str):
     v = sum(1 for g in partes if "'V" in g)
     return f"{c}x{v}"
 
+def detectar_jogo_finalizado(texto):
+    """Detecta se há ⚽ ✖️ ou equivalente no texto (jogo finalizou sem mais gols)"""
+    # Padrões possíveis: ⚽ ✖️, ⚽❌, ⚽ ❌
+    if re.search(r'⚽\s*[❌✖️×x]', texto):
+        return True
+    return False
+
+def extrair_placar_do_alerta(texto):
+    """Extrai o placar que estava no alerta (para jogos finalizados com ⚽ ✖️)"""
+    # Procura por padrão: Placar: 0x0 ou Resultado: 1x1
+    m = re.search(r'Placar[:\s]+(\d+)[xX](\d+)', texto)
+    if m:
+        return f"{m.group(1)}x{m.group(2)}"
+
+    # Alternativa: procura na linha com "Resultado:"
+    for linha in texto.split('\n'):
+        if 'Resultado:' in linha:
+            m = re.search(r'(\d+)[xX](\d+)', linha)
+            if m:
+                return f"{m.group(1)}x{m.group(2)}"
+
+    return None
+
 # ── Coleta mensagens do Telegram ───────────────────────────────────────────────
 async def coletar_dados(telegram_client):
     canal = None
@@ -460,8 +483,10 @@ async def atualizar_gols_telegram(telegram_client, planilha):
         log.warning("Canal não encontrado para atualizar gols.")
         return
 
-    # Construir mapa: chave → gols_str
+    # Construir mapas: chave → gols_str e chave → placar_final (para ⚽ ✖️)
     mapa_gols = {}
+    mapa_finalizados = {}  # Para jogos com ⚽ ✖️ que já tem placar final
+
     async for message in telegram_client.iter_messages(canal, limit=5000):
         if not message.text or message.date.year < ANO_MINIMO:
             continue
@@ -511,12 +536,23 @@ async def atualizar_gols_telegram(telegram_client, planilha):
         if gols_msg and chave not in mapa_gols:
             mapa_gols[chave] = ",".join(gols_msg)
 
-    log.info(f"Mapa de gols: {len(mapa_gols)} entradas com gols encontradas.")
+        # NOVO: Detectar jogos finalizados (⚽ ✖️) e extrair seu placar final
+        if detectar_jogo_finalizado(texto) and chave not in mapa_finalizados:
+            placar_final = extrair_placar_do_alerta(texto)
+            if placar_final:
+                mapa_finalizados[chave] = placar_final
+                log.debug(f"  → Jogo finalizado detectado: {chave} = {placar_final}")
 
-    # Percorrer planilha e atualizar linhas sem gols
+    log.info(f"Mapa de gols: {len(mapa_gols)} entradas com gols encontradas.")
+    log.info(f"Jogos finalizados (⚽ ✖️): {len(mapa_finalizados)}")
+
+    # Percorrer planilha e atualizar linhas sem gols + atualizar placares de jogos finalizados
     IDX = {c: i for i, c in enumerate(COLUNAS)}
-    col_gols_letra = "J"  # coluna J = índice 9 = "gols"
-    total = 0
+    col_gols_letra = "J"      # coluna J = índice 9 = "gols"
+    col_resultado = "G"       # coluna G = índice 6 = "resultado_final"
+    col_resultado_entrada = "H"  # coluna H = índice 7 = "resultado_entrada"
+    total_gols = 0
+    total_finalizados = 0
 
     for sheet in planilha.worksheets():
         if "/" not in sheet.title:
@@ -539,18 +575,29 @@ async def atualizar_gols_telegram(telegram_client, planilha):
                 idx = IDX.get(col, -1)
                 return linha[idx] if 0 <= idx < len(linha) else ""
 
-            # Só atualiza se gols estiver vazio
-            if get("gols").strip():
-                continue
-
             chave = f"{get('estrategia')}|{get('casa')}|{get('visitante')}|{get('data')}"
-            if chave in mapa_gols:
-                row_num = i + 2
+            row_num = i + 2
+
+            # ATUALIZAR GOLS se estiverem vazios
+            if not get("gols").strip() and chave in mapa_gols:
                 batch.append({
                     "range":  f"{sheet.title}!{col_gols_letra}{row_num}",
                     "values": [[mapa_gols[chave]]]
                 })
-                total += 1
+                total_gols += 1
+
+            # ATUALIZAR PLACAR FINAL E RESULTADO se jogo foi finalizado (⚽ ✖️)
+            if chave in mapa_finalizados and not get("resultado_final").strip():
+                placar_final = mapa_finalizados[chave]
+                estrategia = get("estrategia")
+                resultado_entrada = calcular_resultado(estrategia, placar_final)
+
+                batch.append({
+                    "range":  f"{sheet.title}!{col_resultado}{row_num}:{col_resultado_entrada}{row_num}",
+                    "values": [[placar_final, resultado_entrada]]
+                })
+                total_finalizados += 1
+                log.info(f"  ✓ Jogo finalizado: {get('casa')} vs {get('visitante')} = {placar_final} ({resultado_entrada})")
 
         if batch:
             # Expandir para 10 colunas se necessário (Jan/Fev/2026 foram criadas com 9)
@@ -561,7 +608,7 @@ async def atualizar_gols_telegram(telegram_client, planilha):
                 "valueInputOption": "RAW",
                 "data": batch
             })
-            log.info(f"[{sheet.title}] {len(batch)} gols atualizados.")
+            log.info(f"[{sheet.title}] {total_gols} gols atualizados, {total_finalizados} placares de jogos finalizados.")
         time.sleep(1)
 
     log.info(f"Total de gols atualizados na planilha: {total}.")
