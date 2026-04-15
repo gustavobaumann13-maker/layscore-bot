@@ -611,7 +611,7 @@ async def atualizar_gols_telegram(telegram_client, planilha):
             log.info(f"[{sheet.title}] {total_gols} gols atualizados, {total_finalizados} placares de jogos finalizados.")
         time.sleep(1)
 
-    log.info(f"Total de gols atualizados na planilha: {total}.")
+    log.info(f"Total: {total_gols} gols + {total_finalizados} jogos finalizados atualizados.")
 
 # ── Loop principal ─────────────────────────────────────────────────────────────
 async def main():
