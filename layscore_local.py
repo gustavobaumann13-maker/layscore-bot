@@ -118,23 +118,20 @@ def calcular_placar_dos_gols(gols_str):
     return f"{c}x{v}"
 
 def detectar_jogo_finalizado(texto):
-    """Detecta se há ⚽ ✖️ ou equivalente no texto (jogo finalizou sem mais gols)"""
-    # Padrões possíveis: ⚽ ✖️, ⚽❌, ⚽ ❌
-    if re.search(r'⚽\s*[❌✖️×x]', texto):
+    """Detecta se há ⚽: ❌ ou equivalente no texto (jogo finalizou sem mais gols)"""
+    # Padrão: ⚽: ❌ ou ⚽ : ❌ (com ou sem espaço)
+    if re.search(r'⚽\s*:\s*[❌✖️×x]', texto):
         return True
     return False
 
 def extrair_placar_do_alerta(texto):
-    """Extrai o placar que estava no alerta (para jogos finalizados com ⚽ ✖️)"""
-    # Procura por padrão: Placar: 0x0 ou Resultado: 1x1
-    m = re.search(r'Placar[:\s]+(\d+)[xX](\d+)', texto)
-    if m:
-        return f"{m.group(1)}x{m.group(2)}"
-
-    # Alternativa: procura na linha com "Resultado:"
+    """Extrai o placar que estava no alerta (para jogos finalizados com ⚽: ❌)"""
+    # Procura por padrão: **Resultado:** __0 x 0__
+    # O alerta tem formato: ⚽ **Resultado:** __0 x 0__ (0 x 0 Intervalo)
     for linha in texto.split('\n'):
         if 'Resultado:' in linha:
-            m = re.search(r'(\d+)[xX](\d+)', linha)
+            # Procura por números separados por x: 0 x 0 ou 0x0
+            m = re.search(r'(\d+)\s*[xX]\s*(\d+)', linha)
             if m:
                 return f"{m.group(1)}x{m.group(2)}"
 
