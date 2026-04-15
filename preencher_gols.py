@@ -1,8 +1,12 @@
 import asyncio, re, json, time, logging, os
+from dotenv import load_dotenv
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+
+# Load environment variables from .env file
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
