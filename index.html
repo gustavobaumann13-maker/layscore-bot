@@ -77,10 +77,10 @@
 
 <script>
 'use strict';
-// A MESMA página roda servida pelo servidor da frota OU hospedada fora (Netlify): se a
-// origem não for o servidor, busca o endpoint público absoluto (CORS aberto).
-const LOCAL = /overlayscore\.com\.br$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const API = (LOCAL ? '' : 'https://www.overlayscore.com.br') + '/api/canal/publico';
+// Busca SEMPRE no próprio domínio — o arquivo _redirects (proxy interno do Netlify)
+// repassa a chamada pro servidor de dados por trás dos panos. Nenhum outro endereço
+// aparece pro visitante (nem aqui, nem na aba de rede do navegador).
+const API = '/api/canal/publico';
 const PER_PAGE = 25;
 const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 let ROWS = [], page = 1;
