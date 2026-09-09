@@ -756,10 +756,6 @@
       <table>
         <thead>
           <tr>
-            <th colspan="8"></th>
-            <th colspan="4" class="periodo-group">RESULTADO POR PERÍODO</th>
-          </tr>
-          <tr>
             <th></th>
             <th onclick="sortBy('data')" id="th-data">Data <span class="sort-icon">↕</span></th>
             <th onclick="sortBy('estrategia')" id="th-estrategia">Estratégia <span class="sort-icon">↕</span></th>
@@ -767,11 +763,8 @@
             <th>Visitante</th>
             <th onclick="sortBy('liga')" id="th-liga">Liga <span class="sort-icon">↕</span></th>
             <th>Placar final</th>
+            <th onclick="sortBy('odd')" id="th-odd">Odd entrada <span class="sort-icon">↕</span></th>
             <th onclick="sortBy('resultado_entrada')" id="th-resultado_entrada">Resultado <span class="sort-icon">↕</span></th>
-            <th class="periodo-col" style="border-left:2px solid var(--border2)">60m</th>
-            <th class="periodo-col">70m</th>
-            <th class="periodo-col">80m</th>
-            <th class="periodo-col">Final</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -940,6 +933,10 @@ function aplicarFiltros() {
     if(sortCol === "data") {
       va = parseDatePT(va);
       vb = parseDatePT(vb);
+    }
+    if(sortCol === "odd") {
+      va = parseFloat(String(va).replace(",", ".")) || 0;
+      vb = parseFloat(String(vb).replace(",", ".")) || 0;
     }
     if(va < vb) return sortDir === "asc" ? -1 :  1;
     if(va > vb) return sortDir === "asc" ?  1 : -1;
@@ -1152,12 +1149,8 @@ function renderTabela() {
     else                     badge = `<span class="badge pending">⏳ Pendente</span>`;
 
     const placar = row.resultado_final && row.resultado_final !== "-" ? `<span class="mono">${row.resultado_final}</span>` : `<span style="color:var(--text3)">—</span>`;
-
-    const momento = calcularMomento(row.gols, row.estrategia, row.resultado_final, row.resultado_entrada);
-    const m60  = momento ? momento[60]      : null;
-    const m70  = momento ? momento[70]      : null;
-    const m80  = momento ? momento[80]      : null;
-    const mFin = momento ? momento['final'] : null;
+    const oddNum = parseFloat(String(row.odd || "").replace(",", "."));
+    const oddCel = isFinite(oddNum) && oddNum > 1 ? `<span class="mono"><b>${oddNum.toFixed(2)}</b></span>` : `<span style="color:var(--text3)">—</span>`;
 
     const tr = document.createElement("tr");
     tr.id = trId;
@@ -1169,11 +1162,8 @@ function renderTabela() {
       <td class="team">${row.visitante}</td>
       <td style="color:var(--text2);font-size:0.8rem;">${row.liga || "—"}</td>
       <td>${placar}</td>
+      <td>${oddCel}</td>
       <td>${badge}</td>
-      ${renderPeriodoCell(m60, true)}
-      ${renderPeriodoCell(m70, false)}
-      ${renderPeriodoCell(m80, false)}
-      ${renderPeriodoCell(mFin, false)}
     `;
     tr.onclick = () => toggleExpand(idx, row, tr, expId);
     tbody.appendChild(tr);
@@ -1182,7 +1172,7 @@ function renderTabela() {
     const trExp = document.createElement("tr");
     trExp.className = "expanded-row";
     trExp.id = expId;
-    trExp.innerHTML = `<td colspan="12"><div class="expanded-content" id="exp-content-${idx}"><div class="loading" style="padding:1rem"><div class="spinner"></div><div class="loading-text">Buscando dados do jogo...</div></div></div></td>`;
+    trExp.innerHTML = `<td colspan="9"><div class="expanded-content" id="exp-content-${idx}"><div class="loading" style="padding:1rem"><div class="spinner"></div><div class="loading-text">Buscando dados do jogo...</div></div></div></td>`;
     tbody.appendChild(trExp);
   });
 
